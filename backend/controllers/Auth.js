@@ -168,22 +168,7 @@ const ForgotPassword = async (req, res) => {
                 message: "If email exists, reset instructions will be sent" 
             })
         }
-
-
-
-
-
-  // 2. ✅ CHECK: User email verified hai ya nahi?
-        if (!user.isVerified) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Please verify your email first before resetting password. Check your email for verification code." 
-            });
-        }
-
-
-
-        
+   
         // 2. Generate reset token
         const resetToken = Math.floor(100000 + Math.random() * 900000).toString()
         
@@ -304,6 +289,14 @@ const ResetPassword = async (req, res) => {
         })
     }
 }
+
+
+
+
+
+
+
+
 
 // Export all functions
 export { Reigster, VerfiyEmail, Login, ForgotPassword, ResetPassword, VerifyResetOTP }

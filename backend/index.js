@@ -6,6 +6,7 @@ import cors from 'cors';
 import AuthRoutes from './routes/Auth.routes.js'
 import DbCon from './db/db.js'
 
+
 const app = express()
 
 // app.use(cors({
@@ -27,6 +28,8 @@ app.use(express.json())
 
 // THIS IS YOUR WORKING ROUTE
 app.use('/auth', AuthRoutes) // Routes: /auth/register
+
+
 
 app.get('/health', (req, res) => {
   res.status(200).json({ 

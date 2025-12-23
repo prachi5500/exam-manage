@@ -121,9 +121,12 @@ export const authAPI = {
         message: 'Reset failed' 
       };
     }
-  }
+  },
 
 
 };
+
+
+
 
 export default api;

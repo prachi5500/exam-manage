@@ -16,6 +16,11 @@ const userShcema= new mongoose.Schema({
         required:true,
        
     },
+      role: {
+        type: String,
+        enum: ['user', 'admin'], // Only these values allowed
+        default: 'user' // Default role is 'user'
+    },
     lastLogin:{
         type:Date,
         default:Date.now
