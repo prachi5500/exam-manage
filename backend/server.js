@@ -1,0 +1,116 @@
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors({
+  origin: 'http://localhost:5173' // Vite default port (React frontend)
+}));
+app.use(express.json());
+
+// Simple in-memory storage (temporary - baad mein MongoDB kar denge)
+let examSubjects = ['mcq', 'theory', 'coding'];
+let questions = {}; // { 'react-js': [{question, options?}], 'python': [...] }
+let submissions = [];
+
+// API Routes
+
+// Get all subjects
+app.get('/api/subjects', (req, res) => {
+  res.json(examSubjects);
+});
+
+// Add new subject (admin only - future mein auth add karenge)
+app.post('/api/subjects', (req, res) => {
+  const { subject } = req.body;
+  const formatted = subject.toLowerCase().replace(/\s+/g, '-');
+  if (!examSubjects.includes(formatted)) {
+    examSubjects.push(formatted);
+    questions[formatted] = []; // Initialize empty questions array
+    res.status(201).json({ message: 'Subject added', subjects: examSubjects });
+  } else {
+    res.status(400).json({ message: 'Subject already exists' });
+  }
+});
+
+// Delete subject
+app.delete('/api/subjects/:subject', (req, res) => {
+  const { subject } = req.params;
+  examSubjects = examSubjects.filter(s => s !== subject);
+  delete questions[subject];
+  res.json({ message: 'Subject deleted', subjects: examSubjects });
+});
+
+// Get questions for a subject
+app.get('/api/questions/:subject', (req, res) => {
+  const { subject } = req.params;
+  res.json(questions[subject] || []);
+});
+
+// Add question to subject
+app.post('/api/questions/:subject', (req, res) => {
+  const { subject } = req.params;
+  const { question, options } = req.body;
+
+  if (!questions[subject]) {
+    questions[subject] = [];
+  }
+
+  const newQuestion = {
+    id: Date.now(),
+    question,
+    options: options || []
+  };
+
+  questions[subject].push(newQuestion);
+  res.status(201).json(newQuestion);
+});
+
+// Delete question
+app.delete('/api/questions/:subject/:id', (req, res) => {
+  const { subject, id } = req.params;
+  if (questions[subject]) {
+    questions[subject] = questions[subject].filter(q => q.id != id);
+  }
+  res.json({ message: 'Question deleted' });
+});
+
+// Submit exam answers
+app.post('/api/submissions', (req, res) => {
+  const submission = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    subject: req.body.subject,
+    studentName: req.body.studentName || 'Anonymous',
+    answers: req.body.answers
+  };
+  submissions.push(submission);
+  res.status(201).json({ message: 'Exam submitted successfully' });
+});
+
+// Get all submissions (admin)
+app.get('/api/submissions', (req, res) => {
+  res.json(submissions);
+});
+
+// Get student submissions summary (for results page)
+app.get('/api/student-submissions', (req, res) => {
+  // Summary only - no full answers
+  const summary = submissions.map(sub => ({
+    id: sub.id,
+    subject: sub.subject.replace(/-/g, ' '),
+    studentName: sub.studentName,
+    timestamp: sub.timestamp,
+    totalQuestions: sub.answers.length
+  }));
+  res.json(summary);
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend server running on http://localhost:${PORT}`);
+});
