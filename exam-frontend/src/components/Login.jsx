@@ -33,11 +33,14 @@ const Login = () => {
       
       if (response.success) {
         toast.success('Login successful!')
-        // Navigate to dashboard or home
-        navigate('/home')
+       if (response.user.role === 'admin') {
+        navigate('/admin-dashboard')  // Admin panel
       } else {
-        toast.error(response.message)
+        navigate('/home')  // Normal user dashboard
       }
+    } else {
+      toast.error(response.message)
+    }
     } catch (error) {
       toast.error('Login failed')
     } finally {

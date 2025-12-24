@@ -13,7 +13,7 @@ import Home from './pages/Home';
 import ExamSelection from './pages/ExamSelection';
 import Exam from './pages/Exam';
 import Results from './pages/Results';
-
+import Profile from './pages/Profile'; 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTheory from './pages/admin/AdminTheory';
@@ -22,10 +22,12 @@ import AdminCoding from './pages/admin/AdminCoding';
 import AdminSubmissions from './pages/admin/AdminSubmissions';
 import AdminSubjects from './pages/admin/AdminSubjects';
 import DynamicQuestionManager from './pages/admin/DynamicQuestionManager';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
     <Router>
+      <AuthProvider>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200">
         {/* Global Toast Notifications */}
         <Toaster
@@ -59,8 +61,10 @@ function App() {
           {/* ====================== MAIN APP ROUTES ====================== */}
           <Route path="/home" element={<Home />} />
           <Route path="/exam-selection" element={<ExamSelection />} />
-          <Route path="/exam/:type" element={<Exam />} /> {/* e.g., /exam/mcq */}
+          <Route path="/exam/:type" element={<Exam />} />
           <Route path="/results" element={<Results />} />
+          <Route path="/profile" element={<Profile />} />
+
 
           {/* ====================== ADMIN ROUTES ====================== */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
@@ -75,6 +79,7 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
+      </AuthProvider>
     </Router>
   );
 }

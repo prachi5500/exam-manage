@@ -16,6 +16,11 @@ const userShcema= new mongoose.Schema({
         required:true,
        
     },
+      role: {  // ✅ Role field add karo
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
     lastLogin:{
         type:Date,
         default:Date.now

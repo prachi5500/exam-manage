@@ -7,14 +7,12 @@ const AdminMCQ = () => {
     const [options, setOptions] = useState(['', '', '', '']);
 
     useEffect(() => {
-        const stored = localStorage.getItem('mcqQuestions');
-        if (stored) setQuestions(JSON.parse(stored));
-    }, []);
-
-    const saveToStorage = (updated) => {
-        localStorage.setItem('mcqQuestions', JSON.stringify(updated));
-        setQuestions(updated);
-    };
+  // ✅ LOCALSTORAGE KI JAGAH BACKEND SE DATA FETCH KARO
+  fetch(`http://localhost:5000/api/questions/mcq`)
+    .then(res => res.json())
+    .then(data => setQuestions(data))
+    .catch(err => console.error('Error loading questions:', err));
+}, []);
 
     const addQuestion = () => {
         if (newQuestion.trim() && options.every(opt => opt.trim())) {

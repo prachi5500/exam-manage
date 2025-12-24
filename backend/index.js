@@ -7,7 +7,7 @@ import DbCon from './db/db.js'; // Ye file exist karni chahiye
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000; // 5000 ya 3000 – jo pasand ho
+const PORT = process.env.PORT || 3000; // 5000 ya 3000 – jo pasand ho
 
 // CORS configuration - dono possible frontend ports ko allow kiya
 app.use(cors({
@@ -22,8 +22,8 @@ app.use(express.json());
 // Database connection
 DbCon();
 
-// ==================== AUTH ROUTES ====================
-app.use('/auth', AuthRoutes); // /auth/register, /auth/login etc.
+
+app.use('/auth', AuthRoutes); 
 
 // ==================== EXAM SYSTEM ROUTES ====================
 
@@ -121,6 +121,56 @@ app.get('/api/student-submissions', (req, res) => {
   }));
   res.json(summary);
 });
+
+
+
+
+// ==================== AUTH CHECK ENDPOINT ====================
+app.get('/auth/check-login', async (req, res) => {
+  try {
+    // यहाँ आप session या JWT token check करेंगे
+    // Temporary के लिए simple check:
+    
+    // Check if there's a session or token in cookies
+    const sessionToken = req.cookies?.sessionToken;
+    
+    if (!sessionToken) {
+      return res.status(401).json({ message: 'Not logged in' });
+    }
+    
+    // MongoDB में session check करें (या JWT verify करें)
+    // Example: Find user by session token
+    // const user = await Usermodel.findOne({ sessionToken });
+    
+    // Temporary response (आप अपने logic से replace करें)
+    res.json({
+      _id: "user_id_here",
+      name: "User Name",
+      email: "user@example.com",
+      role: "user"
+    });
+    
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ==================== LOGOUT ENDPOINT ====================
+app.post('/auth/logout', async (req, res) => {
+  try {
+    // Clear session from database
+    // Clear cookie
+    res.clearCookie('sessionToken');
+    
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+
 
 // Health check
 app.get('/health', (req, res) => {
