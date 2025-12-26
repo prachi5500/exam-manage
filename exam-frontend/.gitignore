@@ -11,10 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
-
-# Local environment files (keep private)
 .env
-.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*

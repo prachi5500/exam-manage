@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import AuthRoutes from './routes/Auth.routes.js'; // Ye file exist karni chahiye
 import DbCon from './db/db.js'; // Ye file exist karni chahiye
+import { s3Client } from './config/awsConfig.js';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 dotenv.config();
 
@@ -134,4 +137,32 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
+});
+
+// Presigned URL endpoint for frontend uploads
+app.post('/api/upload-url', async (req, res) => {
+  try {
+    const { filename, folder = 'general', contentType = 'application/octet-stream' } = req.body || {};
+    if (!filename) return res.status(400).json({ message: 'filename is required' });
+
+    const bucket = process.env.S3_BUCKET_NAME;
+    const region = process.env.AWS_REGION || 'ap-south-1';
+
+    const key = `${folder}/${Date.now()}-${filename}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+
+    const publicUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+    return res.json({ url, key, publicUrl });
+  } catch (err) {
+    console.error('Error generating presigned URL', err);
+    return res.status(500).json({ message: 'Failed to generate upload URL', error: err.message });
+  }
 });

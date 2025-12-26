@@ -49,7 +49,7 @@ function App() {
 
         <Routes>
           {/* ====================== AUTH ROUTES ====================== */}
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
