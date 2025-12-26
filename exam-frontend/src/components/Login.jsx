@@ -33,14 +33,11 @@ const Login = () => {
       
       if (response.success) {
         toast.success('Login successful!')
-       if (response.user.role === 'admin') {
-        navigate('/admin-dashboard')  // Admin panel
+        // Navigate to dashboard or home
+        navigate('/home')
       } else {
-        navigate('/home')  // Normal user dashboard
+        toast.error(response.message)
       }
-    } else {
-      toast.error(response.message)
-    }
     } catch (error) {
       toast.error('Login failed')
     } finally {
@@ -105,4 +102,4 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Login;

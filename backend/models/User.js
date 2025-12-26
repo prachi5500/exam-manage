@@ -37,3 +37,4 @@ const userShcema= new mongoose.Schema({
 },{timestamps:true})
 
 export const Usermodel=mongoose.model('User',userShcema)
+export default Usermodel

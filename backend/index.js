@@ -3,11 +3,14 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import AuthRoutes from './routes/Auth.routes.js'; // Ye file exist karni chahiye
 import DbCon from './db/db.js'; // Ye file exist karni chahiye
+import { s3Client } from './config/awsConfig.js';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000; // 5000 ya 3000 – jo pasand ho
+const PORT = process.env.PORT || 5000; // 5000 ya 3000 – jo pasand ho
 
 // CORS configuration - dono possible frontend ports ko allow kiya
 app.use(cors({
@@ -22,8 +25,8 @@ app.use(express.json());
 // Database connection
 DbCon();
 
-
-app.use('/auth', AuthRoutes); 
+// ==================== AUTH ROUTES ====================
+app.use('/auth', AuthRoutes); // /auth/register, /auth/login etc.
 
 // ==================== EXAM SYSTEM ROUTES ====================
 
@@ -122,56 +125,6 @@ app.get('/api/student-submissions', (req, res) => {
   res.json(summary);
 });
 
-
-
-
-// ==================== AUTH CHECK ENDPOINT ====================
-app.get('/auth/check-login', async (req, res) => {
-  try {
-    // यहाँ आप session या JWT token check करेंगे
-    // Temporary के लिए simple check:
-    
-    // Check if there's a session or token in cookies
-    const sessionToken = req.cookies?.sessionToken;
-    
-    if (!sessionToken) {
-      return res.status(401).json({ message: 'Not logged in' });
-    }
-    
-    // MongoDB में session check करें (या JWT verify करें)
-    // Example: Find user by session token
-    // const user = await Usermodel.findOne({ sessionToken });
-    
-    // Temporary response (आप अपने logic से replace करें)
-    res.json({
-      _id: "user_id_here",
-      name: "User Name",
-      email: "user@example.com",
-      role: "user"
-    });
-    
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// ==================== LOGOUT ENDPOINT ====================
-app.post('/auth/logout', async (req, res) => {
-  try {
-    // Clear session from database
-    // Clear cookie
-    res.clearCookie('sessionToken');
-    
-    res.json({ message: 'Logged out successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-
-
-
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -184,4 +137,32 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
+});
+
+// Presigned URL endpoint for frontend uploads
+app.post('/api/upload-url', async (req, res) => {
+  try {
+    const { filename, folder = 'general', contentType = 'application/octet-stream' } = req.body || {};
+    if (!filename) return res.status(400).json({ message: 'filename is required' });
+
+    const bucket = process.env.S3_BUCKET_NAME;
+    const region = process.env.AWS_REGION || 'ap-south-1';
+
+    const key = `${folder}/${Date.now()}-${filename}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+
+    const publicUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+    return res.json({ url, key, publicUrl });
+  } catch (err) {
+    console.error('Error generating presigned URL', err);
+    return res.status(500).json({ message: 'Failed to generate upload URL', error: err.message });
+  }
 });
