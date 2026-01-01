@@ -1,20 +1,18 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
-export const generateTokenAndSetCookies=(res,user)=>{
-    const token=jwt.sign(
-        { userId: user._id,
-      role: user.role, },
+export const generateTokenAndSetCookies = (res, user) => {
+    const token = jwt.sign(
+        { userId: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+    );
 
-        process.env.JWT_SECRET,{
-        expiresIn:"7d"
-    })
-
-    res.cookie('token',token,{
+    res.cookie('token', token, {
         httpOnly: true,
-        secure:process.env.NODE_ENV === 'production',
-        sameSite:"strict",
-        maxAge:7 * 24 * 60 *60 * 1000,
-        secure: false
-    })
-    return token
-}
+        secure: process.env.NODE_ENV === 'production', // false in development
+        sameSite: 'lax', // Changed from 'strict' to 'lax' for better dev experience
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return token;
+};

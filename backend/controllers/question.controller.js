@@ -23,6 +23,7 @@ export const addQuestion = async (req, res) => {
     type: req.body.type,
     question: req.body.question,
     options: req.body.options || [],
+    initialCode: req.body.initialCode || '',
     createdBy: req.user.userId, // 👈 MongoDB userId
     createdAt: Date.now()
   };

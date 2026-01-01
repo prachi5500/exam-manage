@@ -24,6 +24,12 @@ const basicTables = [
         KeySchema: [{ AttributeName: 'resultId', KeyType: 'HASH' }],
         AttributeDefinitions: [{ AttributeName: 'resultId', AttributeType: 'S' }],
         BillingMode: 'PAY_PER_REQUEST'
+    },
+    {
+        TableName: 'Subjects',
+        KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+        AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+        BillingMode: 'PAY_PER_REQUEST'
     }
 ];
 
@@ -117,16 +123,16 @@ async function addGSI(config) {
 async function fixAll() {
     console.log('🔧 FIXING DYNAMODB SETUP');
     console.log('='.repeat(50));
-    
+
     // Check existing tables
     console.log('\n📋 Checking existing tables...');
     const existingTables = await listTables();
     console.log('Found tables:', existingTables.join(', ') || 'None');
-    
+
     // Step 1: Create missing basic tables
     console.log('\n🚀 Step 1: Creating missing tables...');
     const tablesToCreate = basicTables.filter(table => !existingTables.includes(table.TableName));
-    
+
     if (tablesToCreate.length === 0) {
         console.log('✅ All basic tables already exist!');
     } else {
@@ -134,14 +140,14 @@ async function fixAll() {
             await createTable(tableConfig);
         }
     }
-    
+
     // Wait a moment for tables to be active
     console.log('\n⏳ Waiting for tables to be ready...');
     await new Promise(resolve => setTimeout(resolve, 3000));
-    
+
     // Step 2: Add GSIs
     console.log('\n🔧 Step 2: Adding Global Secondary Indexes...');
-    
+
     for (const gsiConfig of gsiConfigs) {
         // Check if table exists before adding GSI
         const currentTables = await listTables();
@@ -153,7 +159,7 @@ async function fixAll() {
             console.log(`❌ Table "${gsiConfig.TableName}" not found for GSI`);
         }
     }
-    
+
     // Final verification
     console.log('\n' + '='.repeat(50));
     console.log('✅ FIX COMPLETE!');

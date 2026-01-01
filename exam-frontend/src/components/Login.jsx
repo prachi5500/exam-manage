@@ -21,7 +21,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!formData.email || !formData.password) {
       toast.error('Email and password required')
       return
@@ -31,16 +31,20 @@ const Login = () => {
 
     try {
       const response = await login(formData.email, formData.password)
- console.log('📦 Login response in component:', response);
+      console.log('📦 Login response in component:', response);
 
       if (response.success) {
+        if (response.token) {
+          localStorage.setItem('token', response.token); // fallback
+        }
         toast.success('Login successful!')
-          console.log('✅ Login successful, user:', response.user);
+        console.log('✅ Login successful, user:', response.user);
 
         if (response.user?.role === 'admin') {
-    navigate('/admin-dashboard')   
-        } else{
-        navigate('/home')}
+          navigate('/admin-dashboard')
+        } else {
+          navigate('/home')
+        }
       } else {
         toast.error(response.message || 'Login failed')
       }
@@ -55,7 +59,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-lg w-96">
         <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
@@ -70,21 +74,21 @@ const Login = () => {
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-1">Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
-              onChange={handleChange}  
+              onChange={handleChange}
               autoComplete="current-password"
               className="w-full p-3 border rounded-lg"
               placeholder="Your password"
               required
             />
           </div>
-          
+
           <button
             type="submit"
             disabled={loading}
@@ -92,7 +96,7 @@ const Login = () => {
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
-          
+
           <div className="text-center space-y-2">
             <Link to="/forgot-password" className="text-blue-600 hover:underline">
               Forgot password?

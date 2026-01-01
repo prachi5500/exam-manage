@@ -1,419 +1,91 @@
-
-
-
-// import axios from 'axios';
-
-// // AWS-ready configuration
-// const api = axios.create({
-//   baseURL: 'http://localhost:3000', // ✅ Port 5000
-//   headers: {
-//     'Content-Type': 'application/json',
-//   }
-//   // withCredentials: false रखें (temporary)
-// });
-
-// export const authAPI = {
-//   // ✅ 1. ADD THIS FUNCTION - Check login status
-//   checkLogin: async () => {
-//     try {
-//       const response = await api.get('/auth/check-login');
-//       return response.data;
-//     } catch (error) {
-//       console.error('Check login error:', error);
-      
-//       // If connection refused, backend is not running
-//       if (error.code === 'ERR_NETWORK' || error.message.includes('Connection refused')) {
-//         return { 
-//           loggedIn: false, 
-//           message: 'Backend server not running' 
-//         };
-//       }
-      
-//       return { 
-//         loggedIn: false,
-//         message: 'Not logged in'
-//       };
-//     }
-//   },
-
-//   // ✅ 2. Login function
-//   login: async (credentials) => {
-//     try {
-//       const response = await api.post('/auth/login', credentials);
-//       return response.data;
-//     } catch (error) {
-//       if (error.response?.data) {
-//         return error.response.data;
-//       }
-//       return { 
-//         success: false, 
-//         message: 'Login failed' 
-//       };
-//     }
-//   },
-
-//   // ✅ 3. Logout function
-//   logout: async () => {
-//     try {
-//       const response = await api.post('/auth/logout');
-//       return response.data;
-//     } catch (error) {
-//       console.error('Logout error:', error);
-//       return { 
-//         success: false, 
-//         message: 'Logout failed' 
-//       };
-//     }
-//   },
-
-//   // ✅ 4. Existing functions...
-//   register: async (userData) => {
-//     try {
-//       console.log('📤 Sending to:', 'http://localhost:3000/auth/register');
-//       console.log('📦 Data:', userData);
-      
-//       const response = await api.post('/auth/register', userData);
-//       console.log('✅ Response:', response.data);
-//       return response.data;
-//     } catch (error) {
-//       console.error('❌ API Error:', {
-//         status: error.response?.status,
-//         data: error.response?.data,
-//         message: error.message
-//       });
-      
-//       if (error.response?.data) {
-//         return error.response.data;
-//       }
-      
-//       return { 
-//         success: false, 
-//         message: 'Registration failed. Please try again.' 
-//       };
-//     }
-//   },
-
-//   // ✅ 5. Verify Email
-//   verifyEmail: async (code) => {
-//     try {
-//       const response = await api.post('/auth/verifyEmail', { code });
-//       return response.data;
-//     } catch (error) {
-//       console.error('Verify Email Error:', error);
-//       if (error.response?.data) {
-//         return error.response.data;
-//       }
-//       return { 
-//         success: false, 
-//         message: 'Verification failed.' 
-//       };
-//     }
-//   },
-  
-//   // ✅ 6. Forgot Password
-//   forgotPassword: async (email) => {
-//     try {
-//       const response = await api.post('/auth/forgot-password', { email });
-//       return response.data;
-//     } catch (error) {
-//       if (error.response?.data) {
-//         return error.response.data;
-//       }
-//       return { 
-//         success: false, 
-//         message: 'Request failed' 
-//       };
-//     }
-//   },
-
-//   // ✅ 7. Verify Reset OTP
-//   verifyResetOTP: async (email, otp) => {
-//     try {
-//       const response = await api.post('/auth/verify-reset-otp', { 
-//         email, 
-//         otp 
-//       });
-//       return response.data;
-//     } catch (error) {
-//       if (error.response?.data) {
-//         return error.response.data;
-//       }
-//       return { 
-//         success: false, 
-//         message: 'OTP verification failed' 
-//       };
-//     }
-//   },
-  
-//   // ✅ 8. Reset Password
-//   resetPassword: async (token, newPassword) => {
-//     try {
-//       const response = await api.post('/auth/reset-password', { 
-//         token, 
-//         newPassword 
-//       });
-//       return response.data;
-//     } catch (error) {
-//       if (error.response?.data) {
-//         return error.response.data;
-//       }
-//       return { 
-//         success: false, 
-//         message: 'Reset failed' 
-//       };
-//     }
-//   }
-// };
-
-// export default api;
-
-
 import axios from 'axios';
 
-// Simple configuration - NO withCredentials for now
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
-   withCredentials: true,
-   
+  baseURL: 'http://localhost:5000', // Fixed to 5000
   headers: {
     'Content-Type': 'application/json',
+  },
+  withCredentials: true, // For cookies
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  // withCredentials: false रखें (temporary)
+  return config;
 });
 
 export const authAPI = {
- 
-  register: async (userData) => {
+  checkLogin: async () => {
     try {
-      console.log('📤 Sending to:', 'http://localhost:3000/auth/register');
-      console.log('📦 Data:', userData);
-      
-      const response = await api.post('/auth/register', userData);
-      console.log('✅ Response:', response.data);
+      const response = await api.get('/auth/check-login');
       return response.data;
     } catch (error) {
-      console.error('❌ API Error:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
-      
-      // Return actual error from backend
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      
-      return { 
-        success: false, 
-        message: 'Registration failed. Please try again.' 
-      };
+      return { loggedIn: false, message: error.message || 'Not logged in' };
     }
   },
-
+  register: async (name, email, password) => {
+    try {
+      const response = await api.post('/auth/register', { name, email, password });
+      return response.data;
+    } catch (error) {
+      return error.response?.data || { success: false, message: 'Registration failed' };
+    }
+  },
   verifyEmail: async (code) => {
     try {
       const response = await api.post('/auth/verifyEmail', { code });
       return response.data;
     } catch (error) {
-      console.error('Verify Email Error:', error);
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      return { 
-        success: false, 
-        message: 'Verification failed.' 
-      };
+      return error.response?.data || { success: false, message: 'Verification failed' };
     }
   },
-// };
-
-
-// login
-
-  // NEW FUNCTIONS
-  // login: async (credentials) => {
-  //   try {
-  //     const response = await api.post('/auth/login', credentials);
-  //     return response.data;
-  //   } catch (error) {
-  //     if (error.response?.data) {
-  //       return error.response.data;
-  //     }
-  //     return { 
-  //       success: false, 
-  //       message: 'Login failed' 
-  //     };
-  //   }
-  // },
-  // api.js में
-login: async (credentials) => {
-  try {
-    console.log('🔐 Login attempt:', credentials.email);
-    
-    const response = await api.post('/auth/login', credentials);
-    console.log('✅ Login response:', response.data);
-    
-    // ✅ SUCCESS CASE - Token और user data save करें
-    if (response.data.success && response.data.token) {
-      // Token save करें
-      localStorage.setItem('authToken', response.data.token);
-      
-      // User data save करें (अगर available है)
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-      
-      return {
-        success: true,
-        token: response.data.token,
-        user: response.data.user,
-        message: response.data.message || 'Login successful'
-      };
-    }
-    
-    // ✅ FAILURE CASE
-    return {
-      success: false,
-      message: response.data.message || 'Login failed'
-    };
-    
-  } catch (error) {
-    console.error('❌ Login API error:', error);
-    
-    // Connection refused error
-    if (error.code === 'ERR_NETWORK' || error.message.includes('Connection refused')) {
-      return {
-        success: false,
-        message: 'Backend server is not running. Please start the server.'
-      };
-    }
-    
-    // Other errors
-    if (error.response?.data) {
-      return error.response.data;
-    }
-    
-    return {
-      success: false,
-      message: 'Network error. Please check your connection.'
-    };
-  }
-},
-
-   // Check login status
-  // checkLogin: async () => {
-  //   try {
-  //     const response = await api.get('/auth/check-login', {
-  //     withCredentials: true
-  //   });
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error('Check login error:', error);
-      
-  //     return { loggedIn: false};
-  //   }
-  // },
-  // api.js में checkLogin function
-checkLogin: async () => {
-  try {
-    // ✅ token को localStorage से लें
-    const token = localStorage.getItem('authToken') || 
-                  localStorage.getItem('token') ||
-                  localStorage.getItem('userToken');
-    
-    if (!token) {
-      return { loggedIn: false, message: 'No token found' };
-    }
-
-    // ✅ token को Authorization header में भेजें
-    const response = await api.get('/auth/check-login', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      withCredentials: true
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Check login error:', error);
-    
-    // 401 error के case में localStorage clear करें
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('token');
-      localStorage.removeItem('userToken');
-      localStorage.removeItem('user');
-    }
-    
-    return { loggedIn: false, message: error.message };
-  }
-},
-
-  // Logout function
-  logout: async () => {
+  login: async (email, password) => {
     try {
-      const response = await api.post('/auth/logout');
+      const response = await api.post('/auth/login', { email, password });
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.token); // Keep for auth
+      }
       return response.data;
     } catch (error) {
-      console.error('Logout error:', error);
-      // return { success: false, message: 'Logout failed' };
+      return error.response?.data || { success: false, message: 'Login failed' };
     }
   },
-  
-  forgotPassword : async (email) => {
+  forgotPassword: async (email) => {
     try {
       const response = await api.post('/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      return { 
-        success: false, 
-        message: 'Request failed' 
-      };
+      return error.response?.data || { success: false, message: 'Request failed' };
     }
   },
-   verifyResetOTP: async (email, otp) => {
+  verifyResetOTP: async (email, otp) => {
     try {
-      const response = await api.post('/auth/verify-reset-otp', { 
-        email, 
-        otp 
-      });
+      const response = await api.post('/auth/verify-reset-otp', { email, otp });
       return response.data;
     } catch (error) {
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      return { 
-        success: false, 
-        message: 'OTP verification failed' 
-      };
+      return error.response?.data || { success: false, message: 'OTP verification failed' };
     }
   },
-  
-  resetPassword : async (token, newPassword) => {
+  resetPassword: async (token, newPassword) => {
     try {
-      const response = await api.post('/auth/reset-password', { 
-        token, 
-        newPassword 
-      });
+      const response = await api.post('/auth/reset-password', { token, newPassword });
       return response.data;
     } catch (error) {
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      return { 
-        success: false, 
-        message: 'Reset failed' 
-      };
+      return error.response?.data || { success: false, message: 'Reset failed' };
     }
   },
-
-
+  logout: async () => {
+    try {
+      const response = await api.post('/auth/logout');
+      localStorage.removeItem('token');
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem('token');
+      return { success: true, message: 'Logged out' };
+    }
+  },
 };
-
-
-
 
 export default api;

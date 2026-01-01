@@ -1,132 +1,104 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AdminSubjects = () => {
     const [subjects, setSubjects] = useState([]);
     const [newSubject, setNewSubject] = useState('');
-
-    // useEffect(() => {
-    //     const stored = localStorage.getItem('examSubjects');
-    //     if (stored) {
-    //         setSubjects(JSON.parse(stored));
-    //     } else {
-    //         // Default subjects
-    //         setSubjects(['mcq', 'theory', 'coding']);
-    //         localStorage.setItem('examSubjects', JSON.stringify(['mcq', 'theory', 'coding']));
-    //     }
-    // }, []);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/subjects', {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
+        fetch('http://localhost:5000/api/subjects', {
+            credentials: 'include'
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok && res.status === 401) navigate('/login');
+                return res.json();
+            })
             .then(data => {
-                setSubjects(data);   // expected: [{ id, name }]
+                setSubjects(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
-            .catch(err => {
-                console.error('Error loading subjects', err);
-                setLoading(false);
-            });
-    }, []);
+            .catch(() => setLoading(false));
+    }, [navigate]);
 
-
-    // const addSubject = () => {
-    //     const name = newSubject.trim().toLowerCase().replace(/\s+/g, '-');
-    //     if (name && !subjects.includes(name)) {
-    //         const updated = [...subjects, name];
-    //         setSubjects(updated);
-    //         localStorage.setItem('examSubjects', JSON.stringify(updated));
-    //         setNewSubject('');
-    //     }
-    // };
-
-    // const deleteSubject = (index) => {
-    //     if (window.confirm('Delete this subject? Questions will remain but inaccessible until re-added.')) {
-    //         const updated = subjects.filter((_, i) => i !== index);
-    //         setSubjects(updated);
-    //         localStorage.setItem('examSubjects', JSON.stringify(updated));
-    //     }
-    // };
-    // ✅ 2. ADD SUBJECT (API CALL)
     const addSubject = async () => {
-        const name = newSubject.trim().toLowerCase().replace(/\s+/g, '-');
-        if (!name) return;
-
-        const res = await fetch('http://localhost:3000/api/subjects', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ name })
-        });
-
-        const saved = await res.json();
-        setSubjects(prev => [...prev, saved]);
-        setNewSubject('');
-    };
-
-    // ✅ 3. DELETE SUBJECT (API CALL)
-    const deleteSubject = async (id) => {
-        if (!window.confirm('Delete this subject?')) return;
-
-        await fetch(`http://localhost:3000/api/subjects/${id}`, {
-            method: 'DELETE',
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
+        if (!newSubject.trim()) return;
+        try {
+            const res = await fetch('http://localhost:5000/api/subjects', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newSubject.trim().toLowerCase().replace(/\s+/g, '-') })
+            });
+            if (res.ok) {
+                const added = await res.json();
+                setSubjects([...subjects, added]);
+                setNewSubject('');
+            } else {
+                alert('Failed to add subject');
             }
-        });
-
-        setSubjects(prev => prev.filter(sub => sub.id !== id));
+        } catch (err) {
+            alert('Error adding subject');
+        }
     };
 
+    const deleteSubject = async (id) => {
+        if (!window.confirm('Delete this subject? All related questions will be lost.')) return;
+        try {
+            const res = await fetch(`http://localhost:5000/api/subjects/${id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            if (res.ok) {
+                setSubjects(subjects.filter(s => s.id !== id));
+            }
+        } catch (err) {
+            alert('Error deleting subject');
+        }
+    };
+
+    if (loading) return <div className="text-center py-20">Loading...</div>;
 
     return (
         <div className="min-h-screen bg-gray-100">
             <Navbar />
-            <div className="container mx-auto p-8 max-w-4xl">
-                <h1 className="text-3xl font-bold mb-8">Manage Exam Subjects</h1>
+            <div className="container mx-auto p-8">
+                <h1 className="text-4xl font-bold mb-8 text-center">Manage Exam Subjects</h1>
 
-                <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-                    <h2 className="text-2xl font-semibold mb-6">Add New Subject</h2>
-                    <div className="flex gap-4">
-                        <input
-                            value={newSubject}
-                            onChange={(e) => setNewSubject(e.target.value)}
-                            placeholder="e.g., JavaScript, Physics, React"
-                            className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:border-blue-500"
-                        />
-                        <button onClick={addSubject} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                            Add
-                        </button>
-                    </div>
+                <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mb-12">
+                    <input
+                        type="text"
+                        value={newSubject}
+                        onChange={(e) => setNewSubject(e.target.value)}
+                        placeholder="e.g., React JS"
+                        className="w-full p-4 border rounded-lg mb-4"
+                    />
+                    <button onClick={addSubject} className="w-full py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Add New Subject
+                    </button>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-8">
-                    <h2 className="text-2xl font-semibold mb-6">Current Subjects</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {subjects.map((sub, i) => (
-                            <div key={i} className="flex justify-between items-center bg-gray-50 p-5 rounded-lg">
-                                <span className="font-medium capitalize">{sub.replace(/-/g, ' ')}</span>
-                                <button
-                                    onClick={() => deleteSubject(i)}
-                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    {subjects.map((sub) => (
+                        <div key={sub.id} className="bg-white p-6 rounded-xl shadow-md flex justify-between items-center">
+                            <span className="text-xl font-semibold capitalize">{sub.name.replace(/-/g, ' ')}</span>
+                            <button
+                                onClick={() => deleteSubject(sub.id)}
+                                className="px-5 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    ))}
                 </div>
 
-                <Link to="/admin-dashboard" className="mt-8 inline-block px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700">
-                    ← Back to Dashboard
-                </Link>
+                <div className="mt-12 text-center">
+                    <Link to="/admin-dashboard" className="px-8 py-4 bg-gray-700 text-white rounded-lg hover:bg-gray-800">
+                        ← Back to Dashboard
+                    </Link>
+                </div>
             </div>
         </div>
     );

@@ -4,97 +4,84 @@ import Navbar from '../../components/Navbar';
 const AdminTheory = () => {
     const [questions, setQuestions] = useState([]);
     const [newQuestion, setNewQuestion] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    // useEffect(() => {
-    //     const stored = localStorage.getItem('theoryQuestions');
-    //     if (stored) setQuestions(JSON.parse(stored));
-    // }, []);
-
-    // const saveToStorage = (updated) => {
-    //     localStorage.setItem('theoryQuestions', JSON.stringify(updated));
-    //     setQuestions(updated);
-    // };
-   useEffect(() => {
-    fetch("http://localhost:3000/api/questions/theory", {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-        }
-    })
-    .then(res => res.json())
-    .then(data => setQuestions(data))
-    .catch(err => console.error(err));
-}, []);
-
-
-
-    const addQuestion = () => {
-        if (newQuestion.trim()) {
-            const updated = [...questions, { type: 'theory',  question: newQuestion }];
-            // saveToStorage(updated);
-            const addQuestion = async () => {
-    if (!newQuestion.trim()) return;
-
-    const res = await fetch("http://localhost:3000/api/questions/theory", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-            question: newQuestion,
-            type: "theory"
+    useEffect(() => {
+        fetch('http://localhost:5000/api/questions?subject=theory', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         })
-    });
+            .then(res => res.json())
+            .then(data => {
+                setQuestions(data);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    }, []);
 
-    const saved = await res.json();
-    setQuestions(prev => [...prev, saved]);
-    setNewQuestion('');
-};
-
-            setNewQuestion('');
+    const addQuestion = async () => {
+        if (!newQuestion.trim()) return;
+        try {
+            const res = await fetch('http://localhost:5000/api/questions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    subject: 'theory',
+                    type: 'theory',
+                    question: newQuestion.trim()
+                })
+            });
+            if (res.ok) {
+                const added = await res.json();
+                setQuestions([...questions, added]);
+                setNewQuestion('');
+            }
+        } catch (error) {
+            console.error(error);
         }
     };
 
-    const deleteQuestion = (index) => {
-        const updated = questions.filter((_, i) => i !== index);
-        // saveToStorage(updated);
-        const deleteQuestion = async (id) => {
-    await fetch(`http://localhost:3000/api/questions/${id}`, {
-        method: "DELETE",
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
+    const deleteQuestion = async (id) => {
+        if (!window.confirm('Delete this question?')) return;
+        try {
+            await fetch(`http://localhost:5000/api/questions/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setQuestions(questions.filter(q => q.id !== id));
+        } catch (error) {
+            console.error(error);
         }
-    });
-
-    setQuestions(prev => prev.filter(q => q.id !== id));
-};
-
     };
+
+    if (loading) return <div className="text-center py-12">Loading...</div>;
 
     return (
         <div className="min-h-screen bg-gray-100">
             <Navbar />
-            <div className="container mx-auto p-4">
-                <h1 className="text-2xl font-bold mb-4">Admin - Theory Questions</h1>
-                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Add New Theory Question</h2>
+            <div className="container mx-auto p-8">
+                <h1 className="text-4xl font-bold mb-8 text-center">Manage Theory Questions</h1>
+
+                <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md mb-12">
                     <textarea
-                        placeholder="Question"
                         value={newQuestion}
                         onChange={(e) => setNewQuestion(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded mb-4"
+                        placeholder="Enter theory question"
                         rows="4"
+                        className="w-full p-3 border rounded mb-4"
                     />
-                    <button onClick={addQuestion} className="px-4 py-2 bg-blue-500 text-white rounded">
-                        Add Question
+                    <button onClick={addQuestion} className="w-full py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Add Theory Question
                     </button>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-semibold mb-4">Existing Questions</h2>
-                    {questions.map((q, i) => (
-                        <div key={i} className="mb-4 p-4 border border-gray-200 rounded">
+
+                <div className="grid gap-6">
+                    {questions.map((q) => (
+                        <div key={q.id} className="bg-white p-6 rounded-lg shadow-md flex justify-between items-start">
                             <p>{q.question}</p>
-                            <button onClick={() => deleteQuestion(i)} className="mt-2 px-3 py-1 bg-red-500 text-white rounded">
+                            <button onClick={() => deleteQuestion(q.id)} className="px-4 py-2 bg-red-600 text-white rounded">
                                 Delete
                             </button>
                         </div>
