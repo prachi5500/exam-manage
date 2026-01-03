@@ -17,6 +17,7 @@ import questionPaperRoutes from "./routes/questionPaper.routes.js";
 import submissionRoutes from "./routes/submission.routes.js";
 import resultRoutes from "./routes/result.routes.js";
 import examAttemptRoutes from "./routes/examAttempt.routes.js";
+import cheatingDetectionRoutes from "./routes/cheatingDetection.routes.js";
 import cookieParser from "cookie-parser";
 
 dotenv.config();
@@ -56,6 +57,7 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/results", resultRoutes);
 app.use("/api/exams", examAttemptRoutes);
 app.use("/api/exam-attempts", examAttemptRoutes);
+app.use("/api/cheating-detection", cheatingDetectionRoutes);
 
 // Presigned URL for S3 Upload
 app.post('/api/generate-presigned-url', async (req, res) => {

@@ -10,6 +10,7 @@ const AdminQuestionPapers = () => {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [paperTitle, setPaperTitle] = useState('');
+    const [durationMinutes, setDurationMinutes] = useState('');
     const [selectedQuestions, setSelectedQuestions] = useState([]);
 
     useEffect(() => {
@@ -50,6 +51,10 @@ const AdminQuestionPapers = () => {
             alert('Paper title is required');
             return;
         }
+        if (!durationMinutes || durationMinutes <= 0) {
+            alert('Duration must be greater than 0 minutes');
+            return;
+        }
         if (selectedQuestions.length === 0) {
             alert('Select at least one question');
             return;
@@ -63,7 +68,8 @@ const AdminQuestionPapers = () => {
                 body: JSON.stringify({
                     subject,
                     title: paperTitle,
-                    questionIds: selectedQuestions
+                    questionIds: selectedQuestions,
+                    durationMinutes: parseInt(durationMinutes)
                 })
             });
 
@@ -71,6 +77,7 @@ const AdminQuestionPapers = () => {
                 const newPaper = await res.json();
                 setPapers([...papers, newPaper.paper]);
                 setPaperTitle('');
+                setDurationMinutes('');
                 setSelectedQuestions([]);
                 setShowForm(false);
                 alert('Question paper created successfully!');
@@ -138,6 +145,19 @@ const AdminQuestionPapers = () => {
                         </div>
 
                         <div className="mb-6">
+                            <label className="block text-sm font-medium mb-2">Exam Duration (Minutes)</label>
+                            <input
+                                type="number"
+                                value={durationMinutes}
+                                onChange={(e) => setDurationMinutes(e.target.value)}
+                                placeholder="e.g., 60, 120, 180"
+                                min="1"
+                                className="w-full p-3 border rounded-lg"
+                            />
+                            <p className="text-sm text-gray-500 mt-1">Set how many minutes students will have to complete this paper</p>
+                        </div>
+
+                        <div className="mb-6">
                             <label className="block text-sm font-medium mb-4">Select Questions</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto border rounded-lg p-4">
                                 {questions.map((q) => (
@@ -170,6 +190,7 @@ const AdminQuestionPapers = () => {
                                 onClick={() => {
                                     setShowForm(false);
                                     setPaperTitle('');
+                                    setDurationMinutes('');
                                     setSelectedQuestions([]);
                                 }}
                                 className="flex-1 py-3 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
@@ -187,8 +208,11 @@ const AdminQuestionPapers = () => {
                             {papers.map((paper) => (
                                 <div key={paper.paperId} className="bg-white p-6 rounded-lg shadow-md">
                                     <h3 className="text-xl font-bold mb-2">{paper.title}</h3>
-                                    <p className="text-gray-600 mb-4">
+                                    <p className="text-gray-600 mb-2">
                                         Questions: {paper.questionIds?.length || 0}
+                                    </p>
+                                    <p className="text-blue-600 font-semibold mb-4">
+                                        ⏱️ Duration: {paper.durationMinutes} minutes
                                     </p>
                                     <button
                                         onClick={() => handleDeletePaper(paper.paperId)}

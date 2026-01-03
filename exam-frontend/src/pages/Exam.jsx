@@ -1,4 +1,4 @@
-// src/pages/Exam.jsx (Updated to allow submit anytime with confirmation for incomplete answers, added Previous button)
+// src/pages/Exam.jsx (Updated with cheating detection and dynamic duration)
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -7,6 +7,7 @@ import MCQQuestion from '../components/MCQQuestion';
 import TheoryQuestion from '../components/TheoryQuestion';
 import CodingQuestion from '../components/CodingQuestion';
 import Loader from '../components/Loader';
+import { useCheatingDetection } from '../hooks/useCheatingDetection';
 import toast from 'react-hot-toast';
 
 const Exam = () => {
@@ -18,7 +19,10 @@ const Exam = () => {
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const duration = 60; // minutes
+  const [duration, setDuration] = useState(60); // minutes - will be fetched from paper
+
+  // Enable cheating detection
+  const { getCheatingLog } = useCheatingDetection(attemptId, true);
 
   useEffect(() => {
     const start = async () => {
@@ -35,6 +39,12 @@ const Exam = () => {
         setAttemptId(data.examAttemptId);
         setQuestions(data.questions || []);
         setAnswers(data.savedAnswers || {});
+        
+        // Set duration from paper
+        if (data.durationMinutes) {
+          setDuration(data.durationMinutes);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error(err);

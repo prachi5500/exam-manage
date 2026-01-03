@@ -89,7 +89,8 @@ export const startExam = async (req, res) => {
             paperId: selectedPaper.paperId,
             subject,
             questions: questions.filter(q => q !== null),
-            paperTitle: selectedPaper.title
+            paperTitle: selectedPaper.title,
+            durationMinutes: selectedPaper.durationMinutes || 60
         });
     } catch (error) {
         console.error("Start exam error:", error);

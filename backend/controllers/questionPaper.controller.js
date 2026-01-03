@@ -5,10 +5,14 @@ import { v4 as uuid } from "uuid";
 // Create a question paper (collection of questions for a specific subject)
 export const createQuestionPaper = async (req, res) => {
     try {
-        const { subject, title, questionIds } = req.body;
+        const { subject, title, questionIds, durationMinutes } = req.body;
 
         if (!subject || !title || !questionIds || questionIds.length === 0) {
             return res.status(400).json({ success: false, message: "Subject, title, and questions are required" });
+        }
+
+        if (!durationMinutes || durationMinutes <= 0) {
+            return res.status(400).json({ success: false, message: "Duration (in minutes) must be greater than 0" });
         }
 
         const paperId = uuid();
@@ -17,6 +21,7 @@ export const createQuestionPaper = async (req, res) => {
             subject: subject.trim().toLowerCase(),
             title,
             questionIds,  // Array of question IDs
+            durationMinutes: parseInt(durationMinutes),
             createdBy: req.user.userId,
             createdAt: Date.now(),
             status: "active"

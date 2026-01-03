@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -23,7 +23,9 @@ const Navbar = () => {
                     <Link to="/home" className="text-sm hover:underline">Home</Link>
                     <Link to="/exam-selection" className="text-sm hover:underline">Exam</Link>
                     <Link to="/results" className="text-sm hover:underline">Results</Link>
-                    <Link to="/admin-dashboard" className="text-sm hover:underline">Admin</Link>
+                    {user?.role === 'admin' && (
+                        <Link to="/admin-dashboard" className="text-sm hover:underline">Admin</Link>
+                    )}
                     <button onClick={handleLogout} className="text-sm hover:underline bg-transparent border-none p-0">Logout</button>
                 </div>
             </div>
