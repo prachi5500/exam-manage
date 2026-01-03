@@ -1,3 +1,4 @@
+// src/pages/Exam.jsx (Updated to allow submit anytime with confirmation for incomplete answers, added Previous button)
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -5,6 +6,7 @@ import Timer from '../components/Timer';
 import MCQQuestion from '../components/MCQQuestion';
 import TheoryQuestion from '../components/TheoryQuestion';
 import CodingQuestion from '../components/CodingQuestion';
+import Loader from '../components/Loader';
 import toast from 'react-hot-toast';
 
 const Exam = () => {
@@ -16,183 +18,155 @@ const Exam = () => {
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const duration = 60; // Minutes
+  const duration = 60; // minutes
 
   useEffect(() => {
-    console.log("🔍 Exam page mounted with subject param:", subject);
-  }, [subject]);
-
-  // Redirect if no subject
-  // useEffect(() => {
-  //   if (!subject) {
-  //     toast.error('No subject selected! Redirecting...');
-  //     navigate('/exam-selection', { replace: true });
-  //     return;
-  //   }
-  // }, [subject, navigate]);
-  useEffect(() => {
-    console.log("Exam page loaded with subject:", subject);
-    if (!subject) {
-      toast.error('No subject found in URL!');
-      navigate('/exam-selection');
-    }
-  }, [subject, navigate]);
-
-  // Start exam: Create attempt and get questions
-  useEffect(() => {
-    if (!subject) return;
-
-    const startExamFlow = async () => {
+    const start = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/exam-attempt/start', {
+        const res = await fetch('http://localhost:5000/api/exam-attempts/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ subject }),
+          body: JSON.stringify({ subject })
         });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          toast.error(errData.message || 'Failed to start exam');
-          navigate('/exam-selection');
-          return;
-        }
-
         const data = await res.json();
-        setAttemptId(data.attemptId);
-        setQuestions(data.questions); // Assigned from paper
+        if (!data.success) throw new Error(data.message || 'Failed to start exam');
+
+        setAttemptId(data.examAttemptId);
+        setQuestions(data.questions || []);
+        setAnswers(data.savedAnswers || {});
+        setLoading(false);
       } catch (err) {
         console.error(err);
-        toast.error('Network error starting exam');
+        toast.error(err.message || 'Failed to start exam');
         navigate('/exam-selection');
-      } finally {
-        setLoading(false);
       }
     };
-
-    startExamFlow();
+    start();
   }, [subject, navigate]);
 
-  // Cheating detection
   useEffect(() => {
-    let warningCount = 0;
-    const handleBlur = () => {
-      if (warningCount === 0) {
-        toast.error('Warning: Do not switch windows!');
-        warningCount++;
-      } else {
-        toast.error('Cheating detected! Auto-submitting...');
-        handleSubmit(true);
-      }
-    };
-    window.addEventListener('blur', handleBlur);
-    return () => window.removeEventListener('blur', handleBlur);
-  }, []);
-
-  const handleAnswer = (ans) => {
-    const q = questions[currentIndex];
-    setAnswers({ ...answers, [q.id]: ans });
-  };
-
-  const handleSubmit = async (auto = false) => {
     if (!attemptId) return;
 
-    setSubmitting(true);
-    try {
-      // Autosave current answers before final submit
+    const saveTimer = setTimeout(async () => {
       try {
-        await fetch(`http://localhost:5000/api/exam-attempt/attempt/${attemptId}/answers`, {
+        await fetch(`http://localhost:5000/api/exam-attempts/attempt/${attemptId}/answers`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ answers })
         });
-      } catch (e) {
-        console.warn('Autosave before submit failed', e);
+      } catch (err) {
+        console.error('Auto-save failed:', err);
       }
+    }, 2000);
 
-      const res = await fetch(`http://localhost:5000/api/exam-attempt/attempt/${attemptId}/submit`, {
+    return () => clearTimeout(saveTimer);
+  }, [answers, attemptId]);
+
+  const handleAnswer = (qId, answer) => {
+    setAnswers(prev => ({ ...prev, [qId]: answer }));
+  };
+
+  const handleSubmit = async () => {
+    // Check for unanswered questions
+    const unanswered = questions.filter(q => !answers[q.id]);
+    if (unanswered.length > 0 && !window.confirm(`You have ${unanswered.length} unanswered questions. Do you want to submit anyway?`)) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/exam-attempts/attempt/${attemptId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ answers, autoSubmit: auto }),
+        body: JSON.stringify({ answers })
       });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Submit failed');
 
-      if (res.ok) {
-        toast.success(auto ? 'Exam auto-submitted!' : 'Exam submitted!');
-        navigate('/results');
-      } else {
-        toast.error('Submission failed');
-      }
+      toast.success('Exam submitted successfully!');
+      navigate('/results');
     } catch (err) {
-      toast.error('Network error');
+      console.error(err);
+      toast.error(err.message || 'Submit failed');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="text-center py-20 text-xl">Starting exam...</div>;
+  const handleTimeUp = () => {
+    toast.error('Time up! Submitting automatically...');
+    handleSubmit();
+  };
 
-  if (questions.length === 0) {
-    return (
-      <div className="text-center py-20 text-orange-600 text-2xl">
-        No question paper available for "{subject}".<br />
-        Ask admin to create one.
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><Loader /></div>;
+
+  if (!questions.length) return <div className="min-h-screen bg-gray-100 flex items-center justify-center">No questions available</div>;
 
   const currentQuestion = questions[currentIndex];
-  let QuestionComponent = null;
-  if (currentQuestion.type === 'mcq') QuestionComponent = MCQQuestion;
-  else if (currentQuestion.type === 'theory') QuestionComponent = TheoryQuestion;
-  else if (currentQuestion.type === 'coding') QuestionComponent = CodingQuestion;
 
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
-      <div className="container mx-auto p-6 max-w-4xl">
-        <Timer duration={duration} onTimeUp={() => handleSubmit()} />
-        <div className="bg-white rounded-xl shadow-lg p-8 mt-6">
-          <h2 className="text-2xl font-bold mb-6 text-center">
-            Question {currentIndex + 1} / {questions.length}
-          </h2>
-          <QuestionComponent
-            question={currentQuestion}
-            onAnswer={handleAnswer}
-            savedAnswer={answers[currentQuestion.id] || ''}
-          />
-          <div className="flex justify-between mt-10">
+      <div className="container mx-auto p-4">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+          <div className="flex justify-between mb-8">
+            <h2 className="text-2xl font-bold capitalize">{subject.replace(/-/g, ' ')} Exam</h2>
+            <Timer duration={duration} onTimeUp={handleTimeUp} />
+          </div>
+
+          <div className="mb-8">
+            <p className="text-gray-600 mb-4">Question {currentIndex + 1} of {questions.length}</p>
+
+            {currentQuestion.type === 'mcq' ? (
+              <MCQQuestion
+                question={currentQuestion}
+                onAnswer={(ans) => handleAnswer(currentQuestion.id, ans)}
+                savedAnswer={answers[currentQuestion.id]}
+              />
+            ) : currentQuestion.type === 'theory' ? (
+              <TheoryQuestion
+                question={currentQuestion}
+                onAnswer={(ans) => handleAnswer(currentQuestion.id, ans)}
+                savedAnswer={answers[currentQuestion.id]}
+              />
+            ) : (
+              <CodingQuestion
+                question={currentQuestion}
+                onAnswer={(ans) => handleAnswer(currentQuestion.id, ans)}
+                savedAnswer={answers[currentQuestion.id]}
+              />
+            )}
+          </div>
+
+          <div className="flex justify-between mt-8">
+            {currentIndex > 0 && (
+              <button
+                onClick={() => setCurrentIndex(currentIndex - 1)}
+                className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Previous
+              </button>
+            )}
+
             <button
-              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
-              disabled={currentIndex === 0}
-              className="px-6 py-3 bg-gray-600 text-white rounded-lg disabled:opacity-50"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
             >
-              Previous
+              {submitting ? 'Submitting...' : 'Submit Exam'}
             </button>
 
-            <div className="flex items-center space-x-4">
-              {currentIndex !== questions.length - 1 && (
-                <button
-                  onClick={() => setCurrentIndex(currentIndex + 1)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              )}
-
+            {currentIndex < questions.length - 1 && (
               <button
-                onClick={() => {
-                  if (submitting) return;
-                  const ok = window.confirm('Are you sure you want to submit the exam now?');
-                  if (ok) handleSubmit();
-                }}
-                disabled={submitting}
-                className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                onClick={() => setCurrentIndex(currentIndex + 1)}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                {submitting ? 'Submitting...' : 'Submit Exam'}
+                Next
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>

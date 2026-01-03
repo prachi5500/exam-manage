@@ -205,10 +205,19 @@ export const submitExam = async (req, res) => {
             ExpressionAttributeNames: { "#status": "status" }
         }));
 
-        res.json({ success: true, submission });
+        res.json({
+            success: true,
+            message: "Exam submitted successfully",
+            submissionId: submission.submissionId,
+            submission
+        });
     } catch (error) {
         console.error("Submit exam error:", error);
-        res.status(500).json({ error: "Failed to submit exam" });
+        res.status(500).json({
+            success: false,
+            error: "Failed to submit exam",
+            details: error.message
+        });
     }
 };
 

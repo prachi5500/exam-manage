@@ -79,18 +79,24 @@ export const getAllSubmissions = async (req, res) => {
 
 export const getUserSubmissions = async (req, res) => {
   try {
+    console.log('Fetching submissions for userId:', req.user.userId);
+
+    // Scan all submissions and filter in code to avoid index issues
     const data = await ddb.send(
       new ScanCommand({
-        TableName: "ExamSubmissions",
-        IndexName: "userId-index",
-        FilterExpression: "userId = :u",
-        ExpressionAttributeValues: { ":u": req.user.userId }
+        TableName: "ExamSubmissions"
       })
     );
-    res.json(data.Items || []);
+
+    const userSubmissions = (data.Items || []).filter(item =>
+      item.userId === req.user.userId
+    );
+
+    console.log('Found submissions:', userSubmissions.length);
+    res.json(userSubmissions);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch user submissions" });
+    console.error('Get user submissions error:', error);
+    res.status(500).json({ error: "Failed to fetch user submissions", details: error.message });
   }
 };
 

@@ -8,37 +8,62 @@ const Results = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch("http://localhost:5000/api/submissions/student-submissions", {
-        credentials: "include"
-      }),
-      fetch("http://localhost:5000/api/results/my-results", {
-        credentials: "include"
-      })
-    ])
-      .then(async ([subRes, resRes]) => {
-        if (!subRes.ok || !resRes.ok) {
-          throw new Error("Failed to fetch data");
+    const fetchData = async () => {
+      try {
+        console.log('Fetching submissions and results...');
+
+        const subRes = await fetch("http://localhost:5000/api/submissions/student-submissions", {
+          credentials: "include"
+        });
+
+        const resRes = await fetch("http://localhost:5000/api/results/my-results", {
+          credentials: "include"
+        });
+
+        console.log('Submissions response:', subRes.status, subRes.ok);
+        console.log('Results response:', resRes.status, resRes.ok);
+
+        if (!subRes.ok) {
+          const errText = await subRes.text();
+          console.error('Submissions error:', subRes.status, errText);
+          throw new Error(`Submissions API failed: ${subRes.status}`);
         }
-        return Promise.all([subRes.json(), resRes.json()]);
-      })
-      .then(([subData, resData]) => {
+
+        if (!resRes.ok) {
+          const errText = await resRes.text();
+          console.error('Results error:', resRes.status, errText);
+          throw new Error(`Results API failed: ${resRes.status}`);
+        }
+
+        const subData = await subRes.json();
+        const resData = await resRes.json();
+
+        console.log('Submissions data:', subData);
+        console.log('Results data:', resData);
+
         const submissionList = Array.isArray(subData) ? subData : [];
         const resultList = Array.isArray(resData) ? resData : [];
+
+        console.log('Submission list length:', submissionList.length);
+        console.log('Result list length:', resultList.length);
+
         const resultMap = {};
         resultList.forEach(r => {
           resultMap[r.submissionId] = r;
         });
+
         setSubmissions(submissionList.reverse());
         setResults(resultMap);
         setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error loading", err);
+      } catch (err) {
+        console.error("Error loading results:", err);
         setSubmissions([]);
         setResults({});
         setLoading(false);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   const getResultStatus = (submission) => {
@@ -49,7 +74,12 @@ const Results = () => {
     return { status: "pending", score: null };
   };
 
-  if (loading) return <div className="text-center py-12">Loading...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-100">
+      <Navbar />
+      <div className="text-center py-20 text-xl">Loading your results...</div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-100">

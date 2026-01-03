@@ -55,7 +55,7 @@ app.use("/api/question-papers", questionPaperRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/results", resultRoutes);
 app.use("/api/exams", examAttemptRoutes);
-app.use("/api/exam-attempt", examAttemptRoutes);
+app.use("/api/exam-attempts", examAttemptRoutes);
 
 // Presigned URL for S3 Upload
 app.post('/api/generate-presigned-url', async (req, res) => {
