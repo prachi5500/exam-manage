@@ -11,7 +11,7 @@ const dynamoDB = new DynamoDBClient({
     }
 });
 
-// Tables (added Subjects)
+// Tables (added Subjects, QuestionPapers, ExamAttempts)
 const tables = [
     {
         TableName: 'Exams',
@@ -38,9 +38,21 @@ const tables = [
         BillingMode: 'PAY_PER_REQUEST'
     },
     {
-        TableName: 'Subjects', // NEW
+        TableName: 'Subjects',
         KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
         AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+        BillingMode: 'PAY_PER_REQUEST'
+    },
+    {
+        TableName: 'QuestionPapers',
+        KeySchema: [{ AttributeName: 'paperId', KeyType: 'HASH' }],
+        AttributeDefinitions: [{ AttributeName: 'paperId', AttributeType: 'S' }],
+        BillingMode: 'PAY_PER_REQUEST'
+    },
+    {
+        TableName: 'ExamAttempts',
+        KeySchema: [{ AttributeName: 'examAttemptId', KeyType: 'HASH' }],
+        AttributeDefinitions: [{ AttributeName: 'examAttemptId', AttributeType: 'S' }],
         BillingMode: 'PAY_PER_REQUEST'
     }
 ];

@@ -48,6 +48,11 @@ const AdminDashboard = () => {
                         <p className="text-lg opacity-90">Check all student answers</p>
                     </Link>
 
+                    <Link to="/admin-submissions-review" className="bg-gradient-to-br from-red-600 to-pink-700 text-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-center">
+                        <h2 className="text-2xl font-bold mb-4">Review & Score</h2>
+                        <p className="text-lg opacity-90">Review pending submissions</p>
+                    </Link>
+
                     {/* <Link to="/admin-questions/mcq" className="bg-gradient-to-br from-orange-600 to-red-700 text-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-center">
                         <h2 className="text-2xl font-bold mb-4">Quick Access</h2>
                         <p className="text-lg opacity-90">Jump to MCQ management</p>
@@ -59,18 +64,25 @@ const AdminDashboard = () => {
                         <h2 className="text-3xl font-bold mb-8 text-center text-gray-700">Manage Questions by Subject</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {subjects.map((sub) => (
-                                <Link
-                                    key={sub.id}
-                                    to={`/admin-questions/${sub.name}`}
-                                    className="bg-white p-10 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border border-gray-200 text-center"
-                                >
+                                <div key={sub.id} className="bg-white p-10 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-200">
                                     <h3 className="text-2xl font-bold mb-4 text-blue-700 capitalize">
                                         {sub.name.replace(/-/g, ' ')}
                                     </h3>
-                                    <p className="text-gray-600 text-lg">
-                                        Add, edit, or delete questions
-                                    </p>
-                                </Link>
+                                    <div className="flex gap-3">
+                                        <Link
+                                            to={`/admin-questions/${sub.name}`}
+                                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded text-center hover:bg-blue-700 transition"
+                                        >
+                                            Questions
+                                        </Link>
+                                        <Link
+                                            to={`/admin-papers/${sub.name}`}
+                                            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded text-center hover:bg-purple-700 transition"
+                                        >
+                                            Papers
+                                        </Link>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>

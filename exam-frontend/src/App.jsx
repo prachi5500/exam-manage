@@ -26,66 +26,72 @@ import AdminCoding from './pages/admin/AdminCoding';
 import AdminSubmissions from './pages/admin/AdminSubmissions';
 import AdminSubjects from './pages/admin/AdminSubjects';
 import DynamicQuestionManager from './pages/admin/DynamicQuestionManager';
+import AdminQuestionPapers from './pages/admin/AdminQuestionPapers';
+import AdminSubmissionsReview from './pages/admin/AdminSubmissionsReview';
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AdminRoute from './components/AdminRoute'
 
 
 function App() {
   return (
-       
+
     <Router>
-       <AuthProvider>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200">
-        {/* Global Toast Notifications */}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#1f2937',
-              color: '#fff',
-              borderRadius: '8px',
-              padding: '16px',
-            },
-            success: {
-              style: { background: '#059669' },
-            },
-            error: {
-              style: { background: '#dc2626' },
-            },
-          }}
-        />
+      <AuthProvider>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200">
+          {/* Global Toast Notifications */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#1f2937',
+                color: '#fff',
+                borderRadius: '8px',
+                padding: '16px',
+              },
+              success: {
+                style: { background: '#059669' },
+              },
+              error: {
+                style: { background: '#dc2626' },
+              },
+            }}
+          />
 
-        <Routes>
-          {/* ====================== AUTH ROUTES ====================== */}
-          
-          <Route path="/" element={<Login/>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/logout" element={<Logout />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Routes>
+            {/* ====================== AUTH ROUTES ====================== */}
 
-          {/* ====================== MAIN APP ROUTES ====================== */}
-          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/exam-selection" element={<ProtectedRoute><ExamSelection /></ProtectedRoute>} />
-          <Route path="/exam/:type" element={<ProtectedRoute><Exam /></ProtectedRoute>} /> {/* e.g., /exam/mcq */}
-          <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/logout" element={<Logout />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* ====================== ADMIN ROUTES ====================== */}
-          <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/admin-theory" element={<AdminRoute><AdminTheory /></AdminRoute>} />
-          <Route path="/admin-mcq" element={<AdminRoute><AdminMCQ /></AdminRoute>} />
-          <Route path="/admin-coding" element={<AdminRoute><AdminCoding /></AdminRoute>} />
-          <Route path="/admin-submissions" element={<AdminRoute><AdminSubmissions /></AdminRoute>} />
-          <Route path="/admin-subjects" element={<AdminRoute><AdminSubjects /></AdminRoute>} />
-          <Route path="/admin-questions/:subject" element={<AdminRoute><DynamicQuestionManager /></AdminRoute>} />
+            {/* ====================== MAIN APP ROUTES ====================== */}
+            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/exam-selection" element={<ProtectedRoute><ExamSelection /></ProtectedRoute>} />
+            {/* <Route path="/exam/:type" element={<ProtectedRoute><Exam /></ProtectedRoute>} /> e.g., /exam/mcq */}
+            {/* Route path="/exam/:subject" element={<ProtectedRoute><Exam /></ProtectedRoute>} /> */}
+            <Route path="/exam/:subject" element={<ProtectedRoute><Exam /></ProtectedRoute>} />
+            <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
 
-          {/* ====================== FALLBACK ====================== */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </div>
+            {/* ====================== ADMIN ROUTES ====================== */}
+            <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/admin-theory" element={<AdminRoute><AdminTheory /></AdminRoute>} />
+            <Route path="/admin-mcq" element={<AdminRoute><AdminMCQ /></AdminRoute>} />
+            <Route path="/admin-coding" element={<AdminRoute><AdminCoding /></AdminRoute>} />
+            <Route path="/admin-submissions" element={<AdminRoute><AdminSubmissions /></AdminRoute>} />
+            <Route path="/admin-subjects" element={<AdminRoute><AdminSubjects /></AdminRoute>} />
+            <Route path="/admin-questions/:subject" element={<AdminRoute><DynamicQuestionManager /></AdminRoute>} />
+            <Route path="/admin-papers/:subject" element={<AdminRoute><AdminQuestionPapers /></AdminRoute>} />
+            <Route path="/admin-submissions-review" element={<AdminRoute><AdminSubmissionsReview /></AdminRoute>} />
+
+            {/* ====================== FALLBACK ====================== */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </div>
       </AuthProvider>
     </Router>
   );

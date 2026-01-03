@@ -11,10 +11,9 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// router.get("/", authMiddleware, getQuestions);
-// router.post("/", authMiddleware, addQuestion);
-// router.delete("/:id", authMiddleware, deleteQuestion);
-router.get("/", authMiddleware, adminMiddleware, getQuestions);  // Admin only
+// Students can view questions
+router.get("/", getQuestions);  // Public - students need this
+// Only admin can add/delete questions
 router.post("/", authMiddleware, adminMiddleware, addQuestion);
 router.delete("/:id", authMiddleware, adminMiddleware, deleteQuestion);
 

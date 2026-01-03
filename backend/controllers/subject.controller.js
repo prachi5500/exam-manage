@@ -1,4 +1,5 @@
-import { ddb } from "../config/dynamo.js"; // This should be DynamoDBDocumentClient
+// import { ddb } from "../config/dynamo.js"; // This should be DynamoDBDocumentClient
+import { docClient as ddb } from "../config/awsConfig.js";  // docClient is the DocumentClient
 import { ScanCommand, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuid } from "uuid";
 

@@ -1,42 +1,69 @@
-import { ddb } from "../config/dynamo.js";
+// import { ddb } from "../config/dynamo.js";
+import { docClient as ddb } from "../config/awsConfig.js";  // docClient is the DocumentClient
 import { ScanCommand, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuid } from "uuid";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
+
 export const evaluateSubmission = async (req, res) => {
   try {
     const { submissionId } = req.params;
-    const { scores } = req.body;  // {questionId1: 10, questionId2: 5, ...}
-    const totalScore = Object.values(scores).reduce((sum, score) => sum + Number(score), 0);
+    const { score, feedback } = req.body;  // score: total marks, feedback: optional string
 
     // Get submission
     const submissionData = await ddb.send(new GetCommand({ TableName: "ExamSubmissions", Key: { submissionId } }));
     if (!submissionData.Item) return res.status(404).json({ error: "Submission not found" });
 
+    const submission = submissionData.Item;
+
     const resultItem = {
       resultId: uuid(),
-      userId: submissionData.Item.userId,
-      subject: submissionData.Item.subject,
-      score: totalScore,
-      details: scores,  // Per-question scores
+      userId: submission.userId,
+      submissionId,
+      subject: submission.subject,
+      score: score || 0,
+      feedback: feedback || "",
       evaluatedAt: Date.now(),
-      evaluator: req.user.userId
+      evaluatedBy: req.user.userId,
+      status: "approved"
     };
 
     await ddb.send(new PutCommand({ TableName: "Results", Item: resultItem }));
 
-    // Optional: Mark submission as evaluated
     await ddb.send(new UpdateCommand({
       TableName: "ExamSubmissions",
       Key: { submissionId },
-      UpdateExpression: "set evaluated = :true",
-      ExpressionAttributeValues: { ":true": true }
+      UpdateExpression: "SET #status = :approved, evaluatedAt = :now",
+      ExpressionAttributeValues: {
+        ":approved": "approved",
+        ":now": Date.now()
+      },
+      ExpressionAttributeNames: { "#status": "status" }
     }));
 
     res.json({ success: true, result: resultItem });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to evaluate" });
+    console.error("Evaluate submission error:", error);
+    res.status(500).json({ error: "Failed to evaluate submission", details: error.message });
+  }
+};
+
+export const getPendingSubmissions = async (req, res) => {
+  try {
+    const data = await ddb.send(new ScanCommand({
+      TableName: "ExamSubmissions"
+    }));
+
+    // Filter for pending submissions (not yet evaluated)
+    const pending = (data.Items || []).filter(item =>
+      item.status === "submitted" || item.status === "pending"
+    );
+
+    res.json(pending);
+  } catch (error) {
+    console.error("Get pending submissions error:", error);
+    res.status(500).json({ error: "Failed to fetch pending submissions", details: error.message });
   }
 };
 

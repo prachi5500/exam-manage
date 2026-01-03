@@ -9,8 +9,9 @@ import {
 
 const router = express.Router();
 
-// All routes protected — only admin can access
-router.get("/", authMiddleware, adminMiddleware, getSubjects);  // Admin only
+// Students can view subjects
+router.get("/", getSubjects);  // Public - students need this
+// Only admin can add/delete subjects
 router.post("/", authMiddleware, adminMiddleware, addSubject);
 router.delete("/:id", authMiddleware, adminMiddleware, deleteSubject);
 
