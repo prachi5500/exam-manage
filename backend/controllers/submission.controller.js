@@ -5,6 +5,31 @@ import { v4 as uuid } from "uuid";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { Usermodel } from "../models/User.js";
+
+// Helper: given array of submission items, attach `userName` by querying MongoDB when missing
+const attachUserNames = async (items) => {
+  if (!items || !items.length) return items;
+  const out = [...items];
+  // collect unique userIds that need lookup
+  const needLookup = new Set();
+  out.forEach(it => {
+    if (!it.userName && it.userId) needLookup.add(it.userId);
+  });
+
+  if (needLookup.size === 0) return out;
+
+  const ids = Array.from(needLookup);
+  // Bulk fetch users
+  const users = await Usermodel.find({ _id: { $in: ids } }).select('name').lean();
+  const nameMap = {};
+  users.forEach(u => { nameMap[u._id.toString()] = u.name; });
+
+  return out.map(it => ({
+    ...it,
+    userName: it.userName || nameMap[it.userId] || null
+  }));
+};
 
 export const evaluateSubmission = async (req, res) => {
   try {
@@ -17,9 +42,21 @@ export const evaluateSubmission = async (req, res) => {
 
     const submission = submissionData.Item;
 
+    // Try to determine student name for result records
+    let studentName = submission.userName;
+    if (!studentName) {
+      try {
+        const user = await Usermodel.findById(submission.userId).select('name');
+        studentName = user?.name;
+      } catch (e) {
+        // ignore lookup failure
+      }
+    }
+
     const resultItem = {
       resultId: uuid(),
       userId: submission.userId,
+      studentName: studentName || null,
       submissionId,
       subject: submission.subject,
       score: score || 0,
@@ -60,7 +97,9 @@ export const getPendingSubmissions = async (req, res) => {
       item.status === "submitted" || item.status === "pending"
     );
 
-    res.json(pending);
+    const enriched = await attachUserNames(pending);
+
+    res.json(enriched);
   } catch (error) {
     console.error("Get pending submissions error:", error);
     res.status(500).json({ error: "Failed to fetch pending submissions", details: error.message });
@@ -70,7 +109,8 @@ export const getPendingSubmissions = async (req, res) => {
 export const getAllSubmissions = async (req, res) => {
   try {
     const data = await ddb.send(new ScanCommand({ TableName: "ExamSubmissions" }));
-    res.json(data.Items || []);
+    const enriched = await attachUserNames(data.Items || []);
+    res.json(enriched);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch submissions" });
@@ -93,7 +133,9 @@ export const getUserSubmissions = async (req, res) => {
     );
 
     console.log('Found submissions:', userSubmissions.length);
-    res.json(userSubmissions);
+    // Ensure the returned submissions include the user's name
+    const enriched = await attachUserNames(userSubmissions);
+    res.json(enriched);
   } catch (error) {
     console.error('Get user submissions error:', error);
     res.status(500).json({ error: "Failed to fetch user submissions", details: error.message });
@@ -105,6 +147,7 @@ export const postSubmission = async (req, res) => {
     const item = {
       submissionId: uuid(),
       userId: req.user.userId,
+      userName: req.user.name || undefined,
       submittedAt: Date.now(),
       ...req.body
     };

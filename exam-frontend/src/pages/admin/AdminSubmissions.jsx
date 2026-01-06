@@ -97,7 +97,7 @@ const AdminSubmissions = () => {
                                             {sub.subject?.replace(/-/g, ' ') || 'Unknown Subject'} Exam
                                         </h2>
                                         <p className="text-gray-600 mt-2">
-                                            Submitted by: <span className="font-medium">{sub.userId || 'Unknown User'}</span>
+                                            Submitted by: <span className="font-medium">{sub.userName || sub.userId || 'Unknown User'}</span>
                                         </p>
                                         <p className="text-gray-600">
                                             Date: {new Date(sub.submittedAt).toLocaleString()}

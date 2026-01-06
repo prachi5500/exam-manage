@@ -97,15 +97,15 @@ const AdminSubmissionsReview = () => {
                                             key={sub.submissionId}
                                             onClick={() => setSelectedSubmission(sub)}
                                             className={`w-full text-left p-4 rounded-lg border-l-4 transition ${selectedSubmission?.submissionId === sub.submissionId
-                                                    ? 'bg-blue-100 border-blue-600'
-                                                    : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                                                ? 'bg-blue-100 border-blue-600'
+                                                : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
                                                 }`}
                                         >
                                             <p className="font-semibold text-sm capitalize">
                                                 {sub.subject?.replace(/-/g, ' ')}
                                             </p>
                                             <p className="text-xs text-gray-600">
-                                                {new Date(sub.submittedAt).toLocaleDateString()}
+                                                {new Date(sub.submittedAt).toLocaleDateString()} • {sub.userName || sub.userId}
                                             </p>
                                         </button>
                                     ))}
@@ -130,6 +130,9 @@ const AdminSubmissionsReview = () => {
                                     </h2>
                                     <p className="text-gray-600">
                                         Submitted: {new Date(selectedSubmission.submittedAt).toLocaleString()}
+                                    </p>
+                                    <p className="text-gray-600">
+                                        Student: {selectedSubmission.userName || selectedSubmission.userId}
                                     </p>
                                     <p className="text-gray-600 text-sm">
                                         Paper: {selectedSubmission.paperId}
