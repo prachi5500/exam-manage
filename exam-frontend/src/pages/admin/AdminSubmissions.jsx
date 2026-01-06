@@ -14,17 +14,31 @@ const AdminSubmissions = () => {
         }));
     };
 
+    const getQuestionText = (submission, qId) => {
+        const q = submission.paper?.questions?.find(q => String(q.id) === String(qId) || String(q._id) === String(qId));
+        return q?.question || q?.text || q?.statement || null;
+    };
+
     const evaluate = async (subId) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/submissions/evaluate/${subId}`, {
+            const perQ = scores[subId] || {};
+            const total = Object.values(perQ).reduce((s, v) => s + Number(v || 0), 0);
+            const res = await fetch(`http://localhost:5000/api/submissions/admin/evaluate/${subId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ scores: scores[subId] })
+                body: JSON.stringify({ score: total, feedback: '' })
             });
-            if (res.ok) toast.success('Evaluated and result saved!');
+            if (res.ok) {
+                // update local UI
+                setSubmissions(prev => prev.map(p => p.submissionId === subId ? { ...p, score: total } : p));
+                alert('Evaluated and result saved!');
+            } else {
+                alert('Evaluation failed');
+            }
         } catch (err) {
-            toast.error('Evaluation failed');
+            console.error(err);
+            alert('Evaluation failed');
         }
     };
 
@@ -99,6 +113,12 @@ const AdminSubmissions = () => {
                                         <p className="text-gray-600 mt-2">
                                             Submitted by: <span className="font-medium">{sub.userName || sub.userId || 'Unknown User'}</span>
                                         </p>
+                                        {sub.paper?.title && (
+                                            <p className="text-gray-600">Paper: <span className="font-medium">{sub.paper.title}</span></p>
+                                        )}
+                                        {typeof sub.score !== 'undefined' && (
+                                            <p className="text-gray-600">Score: <span className="font-medium">{sub.score}</span></p>
+                                        )}
                                         <p className="text-gray-600">
                                             Date: {new Date(sub.submittedAt).toLocaleString()}
                                         </p>
@@ -130,11 +150,11 @@ const AdminSubmissions = () => {
                                             {Object.entries(sub.answers).map(([questionId, answer]) => (
                                                 <div key={questionId} className="bg-gray-50 p-4 rounded-lg">
                                                     <p className="font-medium text-sm text-gray-700 mb-1">
-                                                        Question ID: {questionId}
+                                                        {getQuestionText(sub, questionId) || 'Question'}
                                                     </p>
-                                                    <p className="text-gray-800 break-words">
+                                                    <p className="text-gray-800 break-words whitespace-pre-wrap">
                                                         {typeof answer === 'string' || typeof answer === 'number'
-                                                            ? answer || <em className="text-gray-500">(No answer provided)</em>
+                                                            ? (answer || <em className="text-gray-500">(No answer provided)</em>)
                                                             : JSON.stringify(answer)}
                                                     </p>
                                                 </div>

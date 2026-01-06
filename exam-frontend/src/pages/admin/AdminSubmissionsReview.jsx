@@ -134,31 +134,81 @@ const AdminSubmissionsReview = () => {
                                     <p className="text-gray-600">
                                         Student: {selectedSubmission.userName || selectedSubmission.userId}
                                     </p>
-                                    <p className="text-gray-600 text-sm">
-                                        Paper: {selectedSubmission.paperId}
-                                    </p>
+                                    {selectedSubmission.paper?.title ? (
+                                        <p className="text-gray-600 text-sm">Paper: {selectedSubmission.paper.title}</p>
+                                    ) : (
+                                        <p className="text-gray-600 text-sm">Paper: {selectedSubmission.paperId}</p>
+                                    )}
+                                    {typeof selectedSubmission.score !== 'undefined' && (
+                                        <p className="text-gray-600">Score: <span className="font-medium">{selectedSubmission.score}</span></p>
+                                    )}
+                                    {selectedSubmission.feedback && (
+                                        <p className="text-gray-600">Feedback: {selectedSubmission.feedback}</p>
+                                    )}
                                 </div>
 
-                                {/* Student Answers */}
+                                {/* Student Answers - show each question then the student's answer (no question id) */}
                                 <div className="mb-6 max-h-96 overflow-y-auto bg-gray-50 p-4 rounded">
                                     <h3 className="font-bold mb-4 text-lg">Student Answers:</h3>
-                                    {Object.entries(selectedSubmission.answers || {}).length === 0 ? (
-                                        <p className="text-gray-600">No answers provided</p>
-                                    ) : (
+
+                                    {selectedSubmission.paper?.questions && selectedSubmission.paper.questions.length > 0 ? (
                                         <div className="space-y-4">
-                                            {Object.entries(selectedSubmission.answers).map(([qId, ans]) => (
-                                                <div key={qId} className="border-l-4 border-blue-600 pl-4">
-                                                    <p className="font-semibold text-sm text-gray-700">
-                                                        Q{qId}:
-                                                    </p>
-                                                    <p className="text-gray-800 mt-1">
-                                                        {typeof ans === 'object' ? JSON.stringify(ans, null, 2) : ans || '(No answer)'}
-                                                    </p>
+                                            {selectedSubmission.paper.questions.map((q) => {
+                                                const qId = q.id || q._id;
+                                                const ans = selectedSubmission.answers?.[qId] ?? selectedSubmission.answers?.[String(qId)] ?? null;
+                                                return (
+                                                    <div key={qId} className="border-l-4 border-blue-600 pl-4">
+                                                        <p className="font-semibold text-sm text-gray-700">{q.question || q.text || q.statement || 'Question'}</p>
+                                                        <p className="text-gray-800 mt-1 whitespace-pre-wrap">
+                                                            {ans === null || typeof ans === 'undefined' || ans === '' ? <em className="text-gray-500">(No answer)</em>
+                                                                : (typeof ans === 'object' ? JSON.stringify(ans, null, 2) : String(ans))}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        // Fallback: if no paper snapshot, show answers list without IDs
+                                        Object.entries(selectedSubmission.answers || {}).length === 0 ? (
+                                            <p className="text-gray-600">No answers provided</p>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {Object.entries(selectedSubmission.answers).map(([_, ans], idx) => (
+                                                    <div key={idx} className="border-l-4 border-blue-600 pl-4">
+                                                        <p className="font-semibold text-sm text-gray-700">Question</p>
+                                                        <p className="text-gray-800 mt-1 whitespace-pre-wrap">{typeof ans === 'object' ? JSON.stringify(ans, null, 2) : ans || '(No answer)'}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+
+                                {selectedSubmission.paper?.questions && selectedSubmission.paper.questions.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="font-bold mb-4 text-lg">Paper Questions (snapshot):</h3>
+                                        <div className="space-y-4">
+                                            {selectedSubmission.paper.questions.map((q) => (
+                                                <div key={q.id || q._id} className="bg-white p-3 rounded border">
+                                                    <p className="font-semibold">QID: <span className="font-normal">{q.id || q._id}</span></p>
+                                                    <p className="mt-2">{q.question || q.text || q.statement || '[No question text]'} </p>
+                                                    {q.options && q.options.length > 0 && (
+                                                        <div className="mt-2">
+                                                            <p className="text-sm font-medium">Options:</p>
+                                                            <ul className="list-disc list-inside text-sm text-gray-700">
+                                                                {q.options.map((opt, idx) => <li key={idx}>{opt}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {q.initialCode && (
+                                                        <pre className="mt-2 p-2 bg-gray-100 rounded text-sm overflow-auto">{q.initialCode}</pre>
+                                                    )}
+                                                    <p className="text-sm text-gray-600 mt-2">Type: {q.type}</p>
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
 
                                 {/* Scoring Form */}
                                 <div className="mb-6">

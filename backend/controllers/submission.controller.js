@@ -1,5 +1,6 @@
 // import { ddb } from "../config/dynamo.js";
-import { docClient as ddb } from "../config/awsConfig.js";  // docClient is the DocumentClient
+import { docClient as ddb, s3Client } from "../config/awsConfig.js";  // docClient is the DocumentClient
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { ScanCommand, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuid } from "uuid";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
@@ -71,13 +72,36 @@ export const evaluateSubmission = async (req, res) => {
     await ddb.send(new UpdateCommand({
       TableName: "ExamSubmissions",
       Key: { submissionId },
-      UpdateExpression: "SET #status = :approved, evaluatedAt = :now",
+      UpdateExpression: "SET #status = :approved, evaluatedAt = :now, #score = :score, feedback = :feedback, evaluatedBy = :evalBy",
       ExpressionAttributeValues: {
         ":approved": "approved",
-        ":now": Date.now()
+        ":now": Date.now(),
+        ":score": resultItem.score,
+        ":feedback": resultItem.feedback,
+        ":evalBy": resultItem.evaluatedBy
       },
-      ExpressionAttributeNames: { "#status": "status" }
+      ExpressionAttributeNames: { "#status": "status", "#score": "score" }
     }));
+
+    // Backup updated submission to S3 (best-effort)
+    try {
+      const updated = await ddb.send(new GetCommand({ TableName: "ExamSubmissions", Key: { submissionId } }));
+      if (updated.Item && process.env.S3_BUCKET_NAME) {
+        const key = `submissions/${submissionId}.json`;
+        await s3Client.send(new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: key,
+          Body: JSON.stringify(updated.Item),
+          ContentType: 'application/json',
+          Metadata: {
+            uploadedby: updated.Item.userId || '',
+            uploadedbyname: updated.Item.userName || ''
+          }
+        }));
+      }
+    } catch (s3err) {
+      console.error('Failed to backup evaluated submission to S3', s3err.message);
+    }
 
     res.json({ success: true, result: resultItem });
   } catch (error) {
@@ -97,8 +121,8 @@ export const getPendingSubmissions = async (req, res) => {
       item.status === "submitted" || item.status === "pending"
     );
 
-    const enriched = await attachUserNames(pending);
-
+    let enriched = await attachUserNames(pending);
+    enriched = await attachPaperDetails(enriched);
     res.json(enriched);
   } catch (error) {
     console.error("Get pending submissions error:", error);
@@ -109,7 +133,8 @@ export const getPendingSubmissions = async (req, res) => {
 export const getAllSubmissions = async (req, res) => {
   try {
     const data = await ddb.send(new ScanCommand({ TableName: "ExamSubmissions" }));
-    const enriched = await attachUserNames(data.Items || []);
+    let enriched = await attachUserNames(data.Items || []);
+    enriched = await attachPaperDetails(enriched);
     res.json(enriched);
   } catch (error) {
     console.error(error);
@@ -133,8 +158,9 @@ export const getUserSubmissions = async (req, res) => {
     );
 
     console.log('Found submissions:', userSubmissions.length);
-    // Ensure the returned submissions include the user's name
-    const enriched = await attachUserNames(userSubmissions);
+    // Ensure the returned submissions include the user's name and paper snapshot
+    let enriched = await attachUserNames(userSubmissions);
+    enriched = await attachPaperDetails(enriched);
     res.json(enriched);
   } catch (error) {
     console.error('Get user submissions error:', error);
@@ -172,4 +198,39 @@ export const deleteSubmission = async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "Failed to delete submission" });
   }
+};
+
+// Helper: attach paper snapshot (paper metadata + full question objects) when missing
+const attachPaperDetails = async (items) => {
+  if (!items || !items.length) return items;
+  const out = [...items];
+
+  for (let i = 0; i < out.length; i++) {
+    const it = out[i];
+    if (it.paper && it.paper.questions) continue; // already has snapshot
+    if (!it.paperId && !it.paper?.paperId) continue;
+
+    const paperId = it.paper?.paperId || it.paperId;
+    try {
+      const paperRes = await ddb.send(new GetCommand({ TableName: 'QuestionPapers', Key: { paperId } }));
+      if (!paperRes.Item) continue;
+      const paper = paperRes.Item;
+      const questions = await Promise.all(
+        (paper.questionIds || []).map(qId =>
+          ddb.send(new GetCommand({ TableName: 'Questions', Key: { id: qId } })).then(r => r.Item).catch(() => null)
+        )
+      );
+      it.paper = {
+        paperId: paper.paperId,
+        title: paper.title,
+        durationMinutes: paper.durationMinutes,
+        questions: questions.filter(q => q !== null)
+      };
+    } catch (e) {
+      console.error('attachPaperDetails error for', paperId, e.message || e);
+      // continue without failing
+    }
+  }
+
+  return out;
 };

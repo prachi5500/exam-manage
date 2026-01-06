@@ -2,6 +2,7 @@ import { docClient as ddb, s3Client } from "../config/awsConfig.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { ScanCommand, PutCommand, DeleteCommand, GetCommand, UpdateCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuid } from "uuid";
+import { Usermodel } from "../models/User.js";
 
 // Start an exam (create exam attempt and assign question paper)
 export const startExam = async (req, res) => {
@@ -165,10 +166,33 @@ export const submitExam = async (req, res) => {
             examAttemptId,
             paperId: attempt.paperId,
             answers: answers || attempt.answers || {},
+            // will embed paper details below
             submittedAt: Date.now(),
             autoSubmit: autoSubmit || false,
             status: "submitted"
         };
+
+        // Try to fetch and embed paper details so admin can review questions and paper snapshot
+        try {
+            const paperRes = await ddb.send(new GetCommand({ TableName: "QuestionPapers", Key: { paperId: attempt.paperId } }));
+            if (paperRes.Item) {
+                const paper = paperRes.Item;
+                // fetch full question objects for the paper (best-effort)
+                const questions = await Promise.all(
+                    (paper.questionIds || []).map(qId =>
+                        ddb.send(new GetCommand({ TableName: "Questions", Key: { id: qId } })).then(r => r.Item).catch(() => null)
+                    )
+                );
+                submission.paper = {
+                    paperId: paper.paperId,
+                    title: paper.title,
+                    durationMinutes: paper.durationMinutes,
+                    questions: questions.filter(q => q !== null)
+                };
+            }
+        } catch (e) {
+            console.error('Failed to enrich submission with paper details', e.message);
+        }
 
         // Save submission
         await ddb.send(new PutCommand({
@@ -182,11 +206,21 @@ export const submitExam = async (req, res) => {
             if (bucket) {
                 const key = `submissions/${submission.submissionId}.json`;
                 const body = JSON.stringify(submission);
+                // Try to add uploader name metadata
+                let metadata = { uploadedBy: submission.userId };
+                try {
+                    const user = await Usermodel.findById(submission.userId).select('name').lean();
+                    if (user?.name) metadata.uploadedbyname = String(user.name);
+                } catch (e) {
+                    // ignore
+                }
+
                 await s3Client.send(new PutObjectCommand({
                     Bucket: bucket,
                     Key: key,
                     Body: body,
-                    ContentType: 'application/json'
+                    ContentType: 'application/json',
+                    Metadata: metadata
                 }));
             }
         } catch (s3Err) {
